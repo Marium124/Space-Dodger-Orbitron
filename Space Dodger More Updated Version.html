@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Dodger</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(to bottom, #0a0a20, #000000); /* Dark space background */
+            color: #e0e0e0;
+            font-family: 'Orbitron', sans-serif;
+            overflow: hidden;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
+        }
+        .game-container {
+            background-color: #151530; /* Darker panel */
+            border-radius: 20px;
+            box-shadow: 0 0 50px rgba(138, 43, 226, 0.7), 0 0 90px rgba(138, 43, 226, 0.4); /* Purple nebula glow */
+            padding: 30px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 98vw;
+            width: 800px; /* Generous width for desktop */
+            height: 95vh; /* Take up most vertical space */
+            box-sizing: border-box;
+            position: relative;
+            border: 3px solid #8A2BE2; /* Matching purple border */
+        }
+        h1 {
+            color: #EE82EE; /* Violet neon title */
+            text-shadow: 0 0 20px #EE82EE, 0 0 30px #EE82EE;
+            margin-bottom: 20px;
+            font-size: 2.8em;
+            letter-spacing: 2px;
+        }
+        canvas {
+            background-color: #000000; /* Pure black for space */
+            border-radius: 15px;
+            border: 4px solid #8A2BE2; /* Purple outline */
+            display: block;
+            width: 95%; /* Wider canvas */
+            flex-grow: 1; /* Allow canvas to grow and take available space */
+            margin-bottom: 25px;
+            touch-action: none; /* Prevent default touch actions */
+            box-shadow: inset 0 0 15px rgba(138, 43, 226, 0.4); /* Inner glow */
+        }
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #00FFFF; /* Aqua for info */
+            text-shadow: 0 0 10px #00FFFF;
+        }
+        .instructions {
+            margin-top: 20px;
+            font-size: 1em;
+            color: #b0b0b0;
+            line-height: 1.5;
+            max-width: 600px;
+        }
+        .game-over-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 20px;
+            z-index: 20;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.4s ease, visibility 0.4s ease;
+        }
+        .game-over-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .game-over-message {
+            font-size: 3.2em;
+            color: #FF007F; /* Vibrant pink */
+            margin-bottom: 25px;
+            text-shadow: 0 0 20px #FF007F, 0 0 30px #FF007F;
+        }
+        .final-score {
+            font-size: 2.2em;
+            color: #FFD700; /* Gold */
+            margin-bottom: 40px;
+            text-shadow: 0 0 15px #FFD700;
+        }
+        .high-score-display {
+            font-size: 1.8em;
+            color: #ADD8E6; /* Light Blue for High Score */
+            margin-top: -20px; /* Adjust spacing */
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px #ADD8E6;
+        }
+        .control-panel {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        .game-button {
+            background: linear-gradient(45deg, #8A2BE2, #00FFFF); /* Purple-Aqua gradient */
+            color: #151530;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2em;
+            font-weight: bold;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(138, 43, 226, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            outline: none;
+            min-width: 160px;
+        }
+        .game-button:hover {
+            background: linear-gradient(45deg, #00FFFF, #8A2BE2);
+            box-shadow: 0 10px 25px rgba(138, 43, 226, 0.9);
+            transform: translateY(-5px) scale(1.02);
+        }
+        .game-button:active {
+            transform: translateY(1px) scale(0.98);
+            box-shadow: 0 3px 10px rgba(138, 43, 226, 0.3);
+        }
+        .game-button i {
+            margin-right: 10px;
+            font-size: 1.1em;
+        }
+
+        /* Difficulty buttons styling */
+        .difficulty-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px; /* Space between difficulty and start buttons */
+        }
+        .difficulty-button {
+            background-color: #33334d; /* Dark gray */
+            color: #e0e0e0;
+            border: 2px solid #8A2BE2;
+            padding: 10px 20px;
+            font-size: 1em;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .difficulty-button:hover {
+            background-color: #4a4a6e;
+            box-shadow: 0 0 10px #8A2BE2;
+        }
+        .difficulty-button.selected {
+            background-color: #8A2BE2; /* Purple when selected */
+            color: #ffffff;
+            box-shadow: 0 0 15px #8A2BE2, 0 0 20px rgba(138, 43, 226, 0.6);
+            border-color: #ffffff;
+        }
+        /* Hidden class for elements not visible */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Shield pulse animation */
+        @keyframes shieldPulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .spaceship.shielded {
+            animation: shieldPulse 1s infinite alternate; /* Apply to spaceship when shielded */
+        }
+
+
+        /* Responsive adjustments */
+        @media (max-width: 800px) {
+            .game-container {
+                padding: 25px;
+                width: 95vw;
+                height: 95vh;
+            }
+            h1 {
+                font-size: 2.2em;
+            }
+            canvas {
+                width: 90%;
+            }
+            .game-info {
+                font-size: 1.2em;
+            }
+            .game-button {
+                padding: 12px 25px;
+                font-size: 1.1em;
+            }
+            .game-over-message {
+                font-size: 2.5em;
+            }
+            .final-score {
+                font-size: 1.8em;
+            }
+            .high-score-display {
+                font-size: 1.4em;
+            }
+            .control-panel {
+                gap: 15px;
+            }
+            .difficulty-button {
+                padding: 8px 15px;
+                font-size: 0.9em;
+            }
+        }
+
+        @media (max-width: 500px) {
+            .game-container {
+                padding: 15px;
+                height: 98vh;
+            }
+            h1 {
+                font-size: 1.8em;
+                margin-bottom: 15px;
+            }
+            canvas {
+                width: 85%;
+                margin-bottom: 20px;
+            }
+            .game-info {
+                font-size: 1em;
+                margin-bottom: 15px;
+                flex-direction: column;
+                align-items: center;
+                gap: 5px;
+            }
+            .game-button {
+                padding: 10px 20px;
+                font-size: 1em;
+                min-width: 120px;
+            }
+            .game-over-message {
+                font-size: 2em;
+                margin-bottom: 20px;
+            }
+            .final-score {
+                font-size: 1.4em;
+                margin-bottom: 30px;
+            }
+            .high-score-display {
+                font-size: 1.1em;
+            }
+            .instructions {
+                font-size: 0.85em;
+            }
+            .control-panel {
+                gap: 10px;
+            }
+            .difficulty-buttons {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Space Dodger!</h1>
+        <div class="game-info">
+            <span id="scoreDisplay">Score: 0</span>
+            <span id="livesDisplay">Lives: 3</span>
+            <span id="difficultyDisplay">Difficulty: Medium</span>
+        </div>
+        <canvas id="gameCanvas"></canvas>
+
+        <div class="difficulty-buttons">
+            <button id="easyBtn" class="difficulty-button selected">Easy</button>
+            <button id="mediumBtn" class="difficulty-button">Medium</button>
+            <button id="hardBtn" class="difficulty-button">Hard</button>
+        </div>
+
+        <div class="control-panel">
+            <button id="startButton" class="game-button"><i class="fas fa-rocket"></i> Launch Mission</button>
+            <button id="restartButton" class="game-button hidden"><i class="fas fa-redo"></i> Retry Mission</button>
+            <button id="pauseButton" class="game-button hidden"><i class="fas fa-pause"></i> Pause Mission</button>
+        </div>
+        <p class="instructions">
+            Move your mouse or finger horizontally to steer your spaceship. Dodge the falling asteroids to survive!
+            Collect glowing orbs for temporary invincibility!
+        </p>
+
+        <div id="gameOverOverlay" class="game-over-overlay">
+            <div class="game-over-message">Mission Failed!</div>
+            <div class="final-score">Final Score: <span id="finalScoreDisplay">0</span></div>
+            <div class="high-score-display">High Score: <span id="highScoreDisplay">0</span></div>
+            <button id="overlayRestartButton" class="game-button"><i class="fas fa-redo"></i> Back to Menu</button>
+        </div>
+
+        <div id="pauseOverlay" class="game-over-overlay">
+            <div class="game-over-message">Game Paused</div>
+            <button id="resumeButton" class="game-button"><i class="fas fa-play"></i> Resume</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <script>
+        // Get references to HTML elements
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const livesDisplay = document.getElementById('livesDisplay');
+        const difficultyDisplay = document.getElementById('difficultyDisplay');
+        const startButton = document.getElementById('startButton');
+        const restartButton = document.getElementById('restartButton');
+        const gameOverOverlay = document.getElementById('gameOverOverlay');
+        const finalScoreDisplay = document.getElementById('finalScoreDisplay');
+        const highScoreDisplay = document.getElementById('highScoreDisplay'); // New high score display
+        const overlayRestartButton = document.getElementById('overlayRestartButton');
+
+        const easyBtn = document.getElementById('easyBtn');
+        const mediumBtn = document.getElementById('mediumBtn');
+        const hardBtn = document.getElementById('hardBtn');
+        const difficultyButtons = [easyBtn, mediumBtn, hardBtn];
+
+        // New pause related elements
+        const pauseButton = document.getElementById('pauseButton');
+        const pauseOverlay = document.getElementById('pauseOverlay');
+        const resumeButton = document.getElementById('resumeButton');
+
+        // Game configuration - Base values and difficulty multipliers
+        const BASE_ASTEROID_SPEED_MIN = 100; // pixels per second
+        const BASE_ASTEROID_SPEED_MAX = 250;
+        const ASTEROID_SIZE_MIN = 20;
+        const ASTEROID_SIZE_MAX = 40;
+        const BASE_ASTEROID_SPAWN_INTERVAL = 800; // milliseconds
+        const BASE_ASTEROID_SPAWN_DECREASE_RATE = 20; // ms decrease per 10 points
+        const BASE_ASTEROID_SPEED_INCREASE_RATE = 10; // px/s increase per 10 points
+
+        const POWERUP_SPAWN_CHANCE = 0.05; // 5% chance per dodged asteroid
+        const SHIELD_DURATION = 5000; // 5 seconds in milliseconds
+        const MULTIPLIER_DURATION = 7000; // 7 seconds for score multiplier
+
+        // Difficulty settings
+        const difficulties = {
+            easy: {
+                initialLives: 5,
+                speedMultiplier: 0.8, // Asteroids start slower
+                spawnIntervalMultiplier: 1.2, // Asteroids spawn less frequently
+                spawnDecreaseRate: 15, // Slower increase in spawn frequency
+                speedIncreaseRate: 8 // Slower increase in speed
+            },
+            medium: {
+                initialLives: 3,
+                speedMultiplier: 1.0,
+                spawnIntervalMultiplier: 1.0,
+                spawnDecreaseRate: 20,
+                speedIncreaseRate: 10
+            },
+            hard: {
+                initialLives: 2,
+                speedMultiplier: 1.3, // Asteroids start faster
+                spawnIntervalMultiplier: 0.7, // Asteroids spawn more frequently
+                spawnDecreaseRate: 25, // Faster increase in spawn frequency
+                speedIncreaseRate: 12 // Faster increase in speed
+            }
+        };
+
+        // Game state variables
+        let score = 0;
+        let lives = 0; // Initialized based on difficulty
+        let spaceship = { x: 0, y: 0, width: 60, height: 40, color: '#00FFFF', shieldActive: false, shieldTimer: 0 };
+        let asteroids = [];
+        let explosions = []; // To manage explosion animations
+        let powerups = []; // To manage power-ups
+        let scorePopups = []; // To manage score pop-up animations
+        let gameLoopId;
+        let gameOver = true;
+        let lastFrameTime = 0;
+        let lastAsteroidSpawnTime = 0;
+        let currentHighScore = 0;
+        let paused = false; // New: Game paused state
+
+        // Dynamic game parameters based on difficulty
+        let currentAsteroidSpawnInterval;
+        let currentAsteroidSpeedMultiplier;
+        let currentAsteroidSpawnDecreaseRate;
+        let currentAsteroidSpeedIncreaseRate;
+
+        let selectedDifficulty = 'easy'; // Default difficulty
+
+        let gameStarted = false; // Flag to check if game has started at least once
+
+        // New: Score multiplier variables
+        let scoreMultiplier = 1;
+        let scoreMultiplierActive = false;
+        let scoreMultiplierTimer = 0;
+
+        // New: Spaceship trail particles
+        let spaceshipTrail = [];
+
+        // Tone.js setup for sounds
+        let dodgeSynth, hitSynth, gameOverSynth, powerupSynth;
+
+        // Initialize audio context and synths
+        async function setupAudio() {
+            try {
+                if (Tone.context.state !== 'running') {
+                    await Tone.start(); // Start Tone.js audio context on user interaction
+                }
+
+                dodgeSynth = new Tone.Synth({
+                    oscillator: { type: 'sine' },
+                    envelope: { attack: 0.01, decay: 0.1, sustain: 0.0, release: 0.1 }
+                }).toDestination(); // Simple short tone for dodge
+
+                hitSynth = new Tone.Synth({
+                    oscillator: { type: 'square' },
+                    envelope: { attack: 0.01, decay: 0.2, sustain: 0.0, release: 0.2 }
+                }).toDestination(); // Slightly harsher tone for hit
+
+                gameOverSynth = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: 'triangle' },
+                    envelope: { attack: 0.05, decay: 0.5, sustain: 0.0, release: 0.5 }
+                }).toDestination(); // Chord for game over
+
+                powerupSynth = new Tone.Synth({
+                    oscillator: { type: 'triangle' },
+                    envelope: { attack: 0.01, decay: 0.1, sustain: 0.2, release: 0.2 },
+                    volume: -10 // Slightly softer
+                }).toDestination();
+            } catch (e) {
+                console.error("Audio setup failed:", e);
+            }
+        }
+
+        // Call setupAudio on initial user interaction (e.g., first button click)
+        const initialInteraction = (event) => {
+            // Check if a game-related button was clicked
+            if (event.target.closest('.game-button') || event.target.closest('.difficulty-button')) {
+                if (!gameStarted) { // Only set up audio once when the user first interacts
+                    setupAudio();
+                }
+                // Now, depending on which button was clicked, either start game or select difficulty
+                if (event.target.id === 'startButton') {
+                    startGame();
+                } else if (event.target.classList.contains('difficulty-button')) {
+                    selectDifficulty(event.target, event.target.id.replace('Btn', ''));
+                }
+            }
+        };
+        // Attach initial interaction listener to the body or a higher container
+        document.body.addEventListener('click', initialInteraction);
+
+
+        // Background stars array
+        let backgroundStarsNear = []; // Original stars
+        let backgroundStarsFar = [];  // New for parallax
+        const NUM_STARS_NEAR = 100;
+        const NUM_STARS_FAR = 50; // Fewer, slower stars
+
+        function createBackgroundStars() {
+            backgroundStarsNear = [];
+            backgroundStarsFar = [];
+
+            for (let i = 0; i < NUM_STARS_NEAR; i++) {
+                backgroundStarsNear.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    radius: Math.random() * 1.5 + 0.5,
+                    speed: Math.random() * 20 + 5,
+                    color: `rgba(255, 255, 255, ${Math.random() * 0.7 + 0.3})`
+                });
+            }
+            for (let i = 0; i < NUM_STARS_FAR; i++) {
+                backgroundStarsFar.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    radius: Math.random() * 0.8 + 0.2, // Smaller, dimmer
+                    speed: Math.random() * 8 + 2, // Slower speed
+                    color: `rgba(255, 255, 255, ${Math.random() * 0.4 + 0.1})`
+                });
+            }
+        }
+
+        function updateBackgroundStars(deltaTime) {
+            // Update far stars
+            for (let i = 0; i < backgroundStarsFar.length; i++) {
+                backgroundStarsFar[i].y += backgroundStarsFar[i].speed * (deltaTime / 1000);
+                if (backgroundStarsFar[i].y > canvas.height) {
+                    backgroundStarsFar[i].y = 0;
+                    backgroundStarsFar[i].x = Math.random() * canvas.width;
+                }
+            }
+            // Update near stars
+            for (let i = 0; i < backgroundStarsNear.length; i++) {
+                backgroundStarsNear[i].y += backgroundStarsNear[i].speed * (deltaTime / 1000);
+                if (backgroundStarsNear[i].y > canvas.height) {
+                    backgroundStarsNear[i].y = 0;
+                    backgroundStarsNear[i].x = Math.random() * canvas.width;
+                }
+            }
+        }
+
+        function drawBackgroundStars() {
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw far stars first
+            for (const star of backgroundStarsFar) {
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                ctx.fillStyle = star.color;
+                ctx.fill();
+                ctx.closePath();
+            }
+            // Then draw near stars
+            for (const star of backgroundStarsNear) {
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                ctx.fillStyle = star.color;
+                ctx.fill();
+                ctx.closePath();
+            }
+        }
+
+
+        // Set canvas dimensions initially and on resize
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            spaceship.x = canvas.width / 2 - spaceship.width / 2; // Keep spaceship centered horizontally
+            spaceship.y = canvas.height - spaceship.height - 30; // Position spaceship near the bottom
+
+            createBackgroundStars(); // Re-create background stars on resize to fit new dimensions
+
+            // Draw initial instructions or current game state
+            if (!gameStarted || gameOver || paused) { // Also draw initial text if game is over or paused
+                drawBackgroundStars(); // Draw stars on initial load
+                ctx.fillStyle = '#f0f0f0';
+                ctx.font = '30px Orbitron';
+                ctx.textAlign = 'center';
+                ctx.fillText('SPACE DODGER!', canvas.width / 2, canvas.height / 2 - 30);
+                ctx.font = '18px Orbitron';
+                if (paused) {
+                    ctx.fillText('Game Paused', canvas.width / 2, canvas.height / 2 + 20);
+                } else if (gameOver) {
+                    ctx.fillText('Choose Difficulty & Launch Mission!', canvas.width / 2, canvas.height / 2 + 20);
+                }
+                drawSpaceship(); // Draw spaceship even before game starts
+            } else {
+                draw(); // Redraw game elements if game is active
+            }
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        window.onload = function() {
+            resizeCanvas(); // Set initial size and create stars
+            selectDifficulty(easyBtn, 'easy'); // Select easy by default on load
+            loadHighScore(); // Load high score on initial load
+        };
+
+        /**
+         * Draws the spaceship (a simple triangle shape).
+         */
+        function drawSpaceship() {
+            ctx.fillStyle = spaceship.color;
+            ctx.shadowColor = spaceship.color;
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.moveTo(spaceship.x + spaceship.width / 2, spaceship.y); // Top center
+            ctx.lineTo(spaceship.x, spaceship.y + spaceship.height); // Bottom left
+            ctx.lineTo(spaceship.x + spaceship.width, spaceship.y + spaceship.height); // Bottom right
+            ctx.closePath();
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Apply shield pulse animation class
+            if (spaceship.shieldActive) {
+                canvas.classList.add('shielded'); // Add class to canvas for CSS animation
+            } else {
+                canvas.classList.remove('shielded');
+            }
+
+            // Draw small engine flames (optional visual flair)
+            ctx.fillStyle = '#FF4500'; /* Orange-red */
+            ctx.beginPath();
+            ctx.moveTo(spaceship.x + spaceship.width * 0.25, spaceship.y + spaceship.height);
+            ctx.lineTo(spaceship.x + spaceship.width * 0.75, spaceship.y + spaceship.height);
+            ctx.lineTo(spaceship.x + spaceship.width * 0.5, spaceship.y + spaceship.height + 15);
+            ctx.closePath();
+            ctx.fill();
+
+            // Draw shield if active (drawing shield here ensures it's on top of spaceship)
+            if (spaceship.shieldActive) {
+                ctx.beginPath();
+                ctx.arc(spaceship.x + spaceship.width / 2, spaceship.y + spaceship.height / 2,
+                        Math.max(spaceship.width, spaceship.height) / 2 + 10, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(0, 255, 255, ${spaceship.shieldTimer / SHIELD_DURATION})`; // Aqua fading shield
+                ctx.lineWidth = 5;
+                ctx.shadowColor = `rgba(0, 255, 255, ${spaceship.shieldTimer / SHIELD_DURATION})`;
+                ctx.shadowBlur = 20;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+                ctx.closePath();
+            }
+        }
+
+        /**
+         * Draws an asteroid with a slightly textured and irregular look.
+         * @param {object} asteroid - The asteroid object.
+         */
+        function drawAsteroid(asteroid) {
+            ctx.beginPath();
+            // Generate irregular shape
+            const numPoints = Math.floor(Math.random() * 5) + 7; // 7 to 11 points for the polygon
+            for (let i = 0; i < numPoints; i++) {
+                const angle = (i / numPoints) * Math.PI * 2;
+                const irregularity = 0.8 + Math.random() * 0.4; // Controls how much points deviate from perfect circle (0.8 to 1.2)
+                const r = asteroid.radius * irregularity;
+                const x = asteroid.x + Math.cos(angle) * r;
+                const y = asteroid.y + Math.sin(angle) * r;
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.closePath();
+            ctx.fillStyle = asteroid.color;
+            ctx.shadowColor = asteroid.color;
+            ctx.shadowBlur = 8;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Add simple "texture" by drawing a few random dots/lines
+            ctx.fillStyle = 'rgba(0,0,0,0.3)'; // Darker shade for texture
+            for (let i = 0; i < 3; i++) {
+                ctx.beginPath();
+                ctx.arc(asteroid.x + (Math.random() - 0.5) * asteroid.radius * 0.8,
+                        asteroid.y + (Math.random() - 0.5) * asteroid.radius * 0.8,
+                        asteroid.radius * (Math.random() * 0.1 + 0.05), // Small dots
+                        0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        /**
+         * Draws a power-up.
+         * @param {object} powerup - The power-up object.
+         */
+        function drawPowerup(powerup) {
+            ctx.beginPath();
+            ctx.arc(powerup.x, powerup.y, powerup.radius, 0, Math.PI * 2);
+            ctx.fillStyle = powerup.color;
+            ctx.shadowColor = powerup.color;
+            ctx.shadowBlur = 15;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.closePath();
+
+            // Add a small icon or effect for shield powerup
+            ctx.fillStyle = 'rgba(255,255,255,0.8)';
+            ctx.font = `${powerup.radius * 1.2}px "Font Awesome 6 Free"`; // Specify font family for FontAwesome
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            if (powerup.type === 'shield') {
+                ctx.fillText('\uf0e1', powerup.x, powerup.y); // Shield icon
+            } else if (powerup.type === 'multiplier') {
+                ctx.fillText('\uf062', powerup.x, powerup.y + 2); // Arrow up icon for multiplier
+            }
+        }
+
+        /**
+         * Creates an explosion effect at a given position.
+         * @param {number} x - X coordinate.
+         * @param {number} y - Y coordinate.
+         * @param {string} color - Color of the explosion particles.
+         */
+        function createExplosion(x, y, color) {
+            const numParticles = 10;
+            for (let i = 0; i < numParticles; i++) {
+                explosions.push({
+                    x: x,
+                    y: y,
+                    radius: 2,
+                    color: color,
+                    life: 60, // frames
+                    speedX: (Math.random() - 0.5) * 5,
+                    speedY: (Math.random() - 0.5) * 5
+                });
+            }
+        }
+
+        /**
+         * Draws and updates explosion particles.
+         * @param {number} deltaTime - Time elapsed since last frame.
+         */
+        function updateExplosions(deltaTime) {
+            for (let i = 0; i < explosions.length; i++) {
+                const p = explosions[i];
+                p.x += p.speedX * (deltaTime / 1000);
+                p.y += p.speedY * (deltaTime / 1000);
+                p.radius += 0.1; // Expand slightly
+                p.life -= 1; // Decrease life
+
+                if (p.life <= 0) {
+                    explosions.splice(i, 1);
+                    i--;
+                }
+            }
+        }
+
+        function drawExplosions() {
+            for (const p of explosions) {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${parseInt(p.color.slice(1,3), 16)}, ${parseInt(p.color.slice(3,5), 16)}, ${parseInt(p.color.slice(5,7), 16)}, ${p.life / 60})`;
+                ctx.fill();
+                ctx.closePath();
+            }
+        }
+
+        /**
+         * Creates a score pop-up animation.
+         * @param {number} x - X coordinate.
+         * @param {number} y - Y coordinate.
+         * @param {number} value - Score value (e.g., 1).
+         */
+        function createScorePopup(x, y, value) {
+            scorePopups.push({
+                x: x,
+                y: y,
+                value: `+${value}`,
+                life: 90, // frames
+                speedY: -1, // moves upwards
+                opacity: 1
+            });
+        }
+
+        /**
+         * Updates and draws score pop-ups.
+         * @param {number} deltaTime - Time elapsed since last frame.
+         */
+        function updateScorePopups(deltaTime) {
+            for (let i = 0; i < scorePopups.length; i++) {
+                const popup = scorePopups[i];
+                popup.y += popup.speedY * (deltaTime / 1000) * 60; // Adjust speed for smooth animation
+                popup.life -= 1;
+                popup.opacity = popup.life / 90; // Fade out
+
+                if (popup.life <= 0) {
+                    scorePopups.splice(i, 1);
+                    i--;
+                }
+            }
+        }
+
+        function drawScorePopups() {
+            ctx.font = 'bold 20px Orbitron';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.shadowBlur = 5;
+
+            for (const popup of scorePopups) {
+                ctx.fillStyle = `rgba(0, 255, 0, ${popup.opacity})`; // Green fading text
+                ctx.shadowColor = `rgba(0, 255, 0, ${popup.opacity})`;
+                ctx.fillText(popup.value, popup.x, popup.y);
+            }
+            ctx.shadowBlur = 0; // Reset shadow
+        }
+
+        /**
+         * Updates and draws spaceship trail particles.
+         * @param {number} deltaTime - Time elapsed since last frame.
+         */
+        function updateSpaceshipTrail(deltaTime) {
+            // Add new trail particles behind the spaceship
+            spaceshipTrail.push({
+                x: spaceship.x + spaceship.width / 2,
+                y: spaceship.y + spaceship.height - 5, // Just behind the spaceship's bottom
+                radius: 3 + Math.random() * 2, // Varied size
+                color: `rgba(255, 165, 0, ${0.8 + Math.random() * 0.2})`, // Orange-yellow
+                life: 30 // frames
+            });
+
+            // Update existing particles
+            for (let i = 0; i < spaceshipTrail.length; i++) {
+                const p = spaceshipTrail[i];
+                p.y += p.radius * 0.5; // Move down slightly
+                p.radius *= 0.95; // Shrink
+                p.life -= 1; // Decrease life
+
+                if (p.life <= 0 || p.radius < 0.5) {
+                    spaceshipTrail.splice(i, 1);
+                    i--;
+                }
+            }
+        }
+
+        function drawSpaceshipTrail() {
+            for (const p of spaceshipTrail) {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fillStyle = p.color; // Color already has opacity
+                ctx.fill();
+                ctx.closePath();
+            }
+        }
+
+        /**
+         * Updates game elements: asteroids, collisions, score, lives.
+         * @param {number} deltaTime - Time elapsed since last frame.
+         */
+        function update(deltaTime) {
+            updateBackgroundStars(deltaTime);
+            updateExplosions(deltaTime);
+            updateScorePopups(deltaTime);
+            updateSpaceshipTrail(deltaTime); // New: Update engine trail
+
+            // Update shield timer
+            if (spaceship.shieldActive) {
+                spaceship.shieldTimer -= deltaTime;
+                if (spaceship.shieldTimer <= 0) {
+                    spaceship.shieldActive = false;
+                }
+            }
+
+            // Update score multiplier timer
+            if (scoreMultiplierActive) {
+                scoreMultiplierTimer -= deltaTime;
+                if (scoreMultiplierTimer <= 0) {
+                    scoreMultiplierActive = false;
+                    scoreMultiplier = 1; // Reset multiplier
+                }
+            }
+
+            // Update asteroids
+            for (let i = 0; i < asteroids.length; i++) {
+                asteroids[i].y += asteroids[i].speed * currentAsteroidSpeedMultiplier * (deltaTime / 1000);
+
+                // Check for collision with spaceship
+                if (asteroids[i].y + asteroids[i].radius > spaceship.y &&
+                    asteroids[i].y - asteroids[i].radius < spaceship.y + spaceship.height &&
+                    asteroids[i].x + asteroids[i].radius > spaceship.x &&
+                    asteroids[i].x - asteroids[i].radius < spaceship.x + spaceship.width) {
+
+                    if (spaceship.shieldActive) {
+                        // Shield absorbs hit
+                        createExplosion(asteroids[i].x, asteroids[i].y, '#00FFFF'); // Shield hit explosion
+                        if (hitSynth) hitSynth.triggerAttackRelease("G4", "16n"); // Shield hit sound
+                        asteroids.splice(i, 1);
+                        i--;
+                        continue;
+                    } else {
+                        // Collision!
+                        lives--;
+                        livesDisplay.textContent = `Lives: ${lives}`;
+                        createExplosion(asteroids[i].x, asteroids[i].y, asteroids[i].color); // Visual explosion
+                        if (hitSynth) hitSynth.triggerAttackRelease("C3", "8n"); // Play hit sound
+                        asteroids.splice(i, 1); // Remove hit asteroid
+                        i--; // Adjust index after removal
+
+                        if (lives <= 0) {
+                            endGame();
+                            return; // Stop update if game ends
+                        }
+                        continue; // Skip to next asteroid
+                    }
+                }
+
+                // Check if asteroid went off screen (dodged)
+                if (asteroids[i].y - asteroids[i].radius > canvas.height) {
+                    score += (1 * scoreMultiplier); // Apply multiplier to score
+                    scoreDisplay.textContent = `Score: ${score}`;
+                    createScorePopup(asteroids[i].x, canvas.height - 50, (1 * scoreMultiplier)); // Score pop-up reflects multiplier
+                    if (dodgeSynth) dodgeSynth.triggerAttackRelease("C5", "16n"); // Play dodge sound
+                    asteroids.splice(i, 1); // Remove dodged asteroid
+                    i--; // Adjust index after removal
+
+                    // Chance to spawn power-up
+                    if (Math.random() < POWERUP_SPAWN_CHANCE) {
+                        // Randomly choose between shield and multiplier
+                        const powerupType = Math.random() < 0.5 ? 'shield' : 'multiplier';
+                        spawnPowerup(asteroids[i] ? asteroids[i].x : Math.random() * canvas.width, 0, powerupType);
+                    }
+
+                    // Increase difficulty (faster and more frequent asteroids)
+                    if (score > 0 && score % 10 === 0) { // Every 10 points
+                        currentAsteroidSpawnInterval = Math.max(100, currentAsteroidSpawnInterval - currentAsteroidSpawnDecreaseRate); // Minimum spawn interval is 100ms
+                        currentAsteroidSpeedMultiplier += currentAsteroidSpeedIncreaseRate / 100; // Small increment
+                    }
+                }
+            }
+
+            // Update power-ups
+            for (let i = 0; i < powerups.length; i++) {
+                powerups[i].y += powerups[i].speed * (deltaTime / 1000);
+
+                // Check for collision with spaceship
+                const dx = powerups[i].x - (spaceship.x + spaceship.width / 2);
+                const dy = powerups[i].y - (spaceship.y + spaceship.height / 2);
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < powerups[i].radius + Math.min(spaceship.width, spaceship.height) / 2) {
+                    // Power-up collected!
+                    if (powerupSynth) powerupSynth.triggerAttackRelease("E5", "16n"); // Power-up sound
+
+                    if (powerups[i].type === 'shield') {
+                        spaceship.shieldActive = true;
+                        spaceship.shieldTimer = SHIELD_DURATION;
+                    } else if (powerups[i].type === 'multiplier') {
+                        scoreMultiplierActive = true;
+                        scoreMultiplier = 2; // Example: 2x multiplier
+                        scoreMultiplierTimer = MULTIPLIER_DURATION;
+                    }
+
+                    powerups.splice(i, 1); // Remove collected power-up
+                    i--;
+                } else if (powerups[i].y - powerups[i].radius > canvas.height) {
+                    // Power-up went off screen
+                    powerups.splice(i, 1);
+                    i--;
+                }
+            }
+
+            // Spawn new asteroids if game is active
+            const now = performance.now();
+            if (now - lastAsteroidSpawnTime > currentAsteroidSpawnInterval) {
+                spawnAsteroid();
+                lastAsteroidSpawnTime = now;
+            }
+        }
+
+        /**
+         * Draws all game elements.
+         */
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas each frame
+            drawBackgroundStars();
+            drawSpaceshipTrail(); // New: Draw engine trail before spaceship
+            for (const asteroid of asteroids) {
+                drawAsteroid(asteroid);
+            }
+            for (const powerup of powerups) {
+                drawPowerup(powerup);
+            }
+            drawSpaceship();
+            drawExplosions(); // Draw explosions on top
+            drawScorePopups(); // Draw score popups on top
+        }
+
+        /**
+         * The main game loop.
+         * @param {number} currentTime - The current time provided by requestAnimationFrame.
+         */
+        function gameLoop(currentTime) {
+            if (gameOver || paused) {
+                // If game is over or paused, the loop should have been cancelled or will be shortly.
+                // This 'return' acts as a safeguard.
+                return;
+            }
+
+            const deltaTime = currentTime - lastFrameTime;
+            lastFrameTime = currentTime;
+
+            update(deltaTime);
+            draw();
+            gameLoopId = requestAnimationFrame(gameLoop);
+        }
+
+        /**
+         * Spawns a new asteroid at a random X position at the top of the canvas.
+         */
+        function spawnAsteroid() {
+            const radius = Math.random() * (ASTEROID_SIZE_MAX - ASTEROID_SIZE_MIN) + ASTEROID_SIZE_MIN;
+            const x = Math.random() * (canvas.width - radius * 2) + radius;
+            const speed = Math.random() * (BASE_ASTEROID_SPEED_MAX - BASE_ASTEROID_SPEED_MIN) + BASE_ASTEROID_SPEED_MIN;
+            const color = '#' + Math.floor(Math.random()*16777215).toString(16); // Random color
+            asteroids.push({ x: x, y: -radius, radius: radius, speed: speed, color: color });
+        }
+
+        /**
+         * Spawns a power-up.
+         * @param {number} x - X coordinate for the power-up.
+         * @param {number} y - Y coordinate for the power-up.
+         * @param {string} type - Type of power-up ('shield' or 'multiplier').
+         */
+        function spawnPowerup(x, y, type) {
+            const radius = 15; // Fixed size for power-up
+            const speed = BASE_ASTEROID_SPEED_MIN * currentAsteroidSpeedMultiplier * 0.8; // Slightly slower than asteroids
+            let color;
+            if (type === 'shield') {
+                color = '#00FFFF'; // Aqua for shield
+            } else if (type === 'multiplier') {
+                color = '#FFD700'; // Gold for multiplier
+            }
+            powerups.push({ x: x, y: y, radius: radius, speed: speed, color: color, type: type });
+        }
+
+        /**
+         * Toggles the game's paused state.
+         */
+        function togglePause() {
+            if (gameOver) return; // Cannot pause if game is already over
+
+            paused = !paused;
+
+            if (paused) {
+                cancelAnimationFrame(gameLoopId); // Stop the game loop
+                pauseOverlay.classList.add('active'); // Show pause overlay
+                // Hide in-game controls when paused
+                restartButton.classList.add('hidden');
+                pauseButton.classList.add('hidden');
+            } else {
+                lastFrameTime = performance.now(); // Reset lastFrameTime to prevent large deltaTime jump
+                gameLoopId = requestAnimationFrame(gameLoop); // Restart the game loop
+                pauseOverlay.classList.remove('active'); // Hide pause overlay
+                // Show in-game controls when unpaused
+                restartButton.classList.remove('hidden');
+                pauseButton.classList.remove('hidden');
+            }
+        }
+
+        /**
+         * Resets the UI to the initial game start screen.
+         */
+        function resetGameUI() {
+            gameOverOverlay.classList.remove('active');
+            pauseOverlay.classList.remove('active'); // Ensure pause overlay is also hidden
+            startButton.classList.remove('hidden');
+            restartButton.classList.add('hidden');
+            pauseButton.classList.add('hidden'); // Hide pause button when back to menu
+            difficultyButtons.forEach(btn => btn.classList.remove('hidden'));
+            resizeCanvas();
+            gameOver = true; // Ensure game is in game over state when at menu
+            paused = false; // Ensure not paused at menu
+        }
+
+        /**
+         * Starts a new game.
+         */
+        function startGame() {
+            if (!gameStarted) { // First time game starts
+                gameStarted = true;
+            }
+            gameOver = false;
+            paused = false; // Ensure not paused when starting new game
+            score = 0;
+            lives = difficulties[selectedDifficulty].initialLives; // Set lives based on selected difficulty
+            asteroids = [];
+            explosions = [];
+            powerups = [];
+            scorePopups = [];
+            spaceshipTrail = []; // Clear old trail particles
+            spaceship.x = canvas.width / 2 - spaceship.width / 2;
+            spaceship.shieldActive = false;
+            spaceship.shieldTimer = 0;
+            scoreMultiplierActive = false; // Reset multiplier
+            scoreMultiplier = 1;
+            scoreMultiplierTimer = 0;
+            lastFrameTime = performance.now();
+            lastAsteroidSpawnTime = performance.now();
+
+            // Reset dynamic difficulty parameters
+            currentAsteroidSpawnInterval = BASE_ASTEROID_SPAWN_INTERVAL * difficulties[selectedDifficulty].spawnIntervalMultiplier;
+            currentAsteroidSpeedMultiplier = difficulties[selectedDifficulty].speedMultiplier;
+            currentAsteroidSpawnDecreaseRate = difficulties[selectedDifficulty].spawnDecreaseRate;
+            currentAsteroidSpeedIncreaseRate = difficulties[selectedDifficulty].speedIncreaseRate;
+
+            scoreDisplay.textContent = `Score: ${score}`;
+            livesDisplay.textContent = `Lives: ${lives}`;
+            difficultyDisplay.textContent = `Difficulty: ${selectedDifficulty.charAt(0).toUpperCase() + selectedDifficulty.slice(1)}`;
+
+            // Hide start button and show in-game buttons
+            startButton.classList.add('hidden');
+            restartButton.classList.remove('hidden');
+            pauseButton.classList.remove('hidden'); // Show pause button
+            gameOverOverlay.classList.remove('active'); // Hide game over overlay
+            pauseOverlay.classList.remove('active'); // Hide pause overlay
+
+            // Hide difficulty buttons when game starts
+            difficultyButtons.forEach(btn => btn.classList.add('hidden'));
+
+
+            cancelAnimationFrame(gameLoopId); // Stop any existing loop
+            gameLoopId = requestAnimationFrame(gameLoop);
+        }
+
+        /**
+         * Ends the current game.
+         */
+        function endGame() {
+            gameOver = true;
+            cancelAnimationFrame(gameLoopId); // Stop the game loop
+            if (gameOverSynth) gameOverSynth.triggerAttackRelease(["C3", "E3", "G3"], "2n"); // Play game over chord
+
+            finalScoreDisplay.textContent = score;
+            saveHighScore(score); // Save current score if it's a high score
+            loadHighScore(); // Update high score display
+
+            gameOverOverlay.classList.add('active'); // Show game over overlay
+            pauseButton.classList.add('hidden'); // Hide pause button on game over
+            restartButton.classList.add('hidden'); // In-game restart button hidden
+        }
+
+        /**
+         * Saves the high score to local storage.
+         * @param {number} newScore - The score to potentially save.
+         */
+        function saveHighScore(newScore) {
+            if (newScore > currentHighScore) {
+                currentHighScore = newScore;
+                localStorage.setItem('spaceDodgerHighScore', currentHighScore);
+            }
+        }
+
+        /**
+         * Loads the high score from local storage and updates the display.
+         */
+        function loadHighScore() {
+            const storedHighScore = localStorage.getItem('spaceDodgerHighScore');
+            if (storedHighScore) {
+                currentHighScore = parseInt(storedHighScore);
+                highScoreDisplay.textContent = currentHighScore;
+            } else {
+                currentHighScore = 0;
+                highScoreDisplay.textContent = 0;
+            }
+        }
+
+        /**
+         * Handles mouse and touch movement for spaceship control.
+         * @param {Event} event - The mouse or touch event.
+         */
+        function handleMove(event) {
+            if (gameOver || paused) return; // Don't move spaceship if game is over or paused
+
+            let clientX;
+            if (event.touches && event.touches.length > 0) {
+                clientX = event.touches[0].clientX;
+                event.preventDefault(); // Prevent scrolling on touch
+            } else {
+                clientX = event.clientX;
+            }
+
+            // Calculate canvas position relative to viewport
+            const canvasRect = canvas.getBoundingClientRect();
+            const mouseX = clientX - canvasRect.left;
+
+            // Update spaceship position, clamping it within canvas bounds
+            spaceship.x = mouseX - spaceship.width / 2;
+            if (spaceship.x < 0) {
+                spaceship.x = 0;
+            }
+            if (spaceship.x + spaceship.width > canvas.width) {
+                spaceship.x = canvas.width - spaceship.width;
+            }
+        }
+
+        /**
+         * Selects the game difficulty.
+         * @param {HTMLElement} button - The button element that was clicked.
+         * @param {string} level - The difficulty level ('easy', 'medium', 'hard').
+         */
+        function selectDifficulty(button, level) {
+            selectedDifficulty = level;
+            // Remove 'selected' class from all difficulty buttons
+            difficultyButtons.forEach(btn => btn.classList.remove('selected'));
+            // Add 'selected' class to the clicked button
+            button.classList.add('selected');
+            difficultyDisplay.textContent = `Difficulty: ${level.charAt(0).toUpperCase() + level.slice(1)}`; // Capitalize first letter
+
+            // Always update lives display to reflect the chosen difficulty's initial lives
+            lives = difficulties[selectedDifficulty].initialLives;
+            livesDisplay.textContent = `Lives: ${lives}`;
+        }
+
+        canvas.addEventListener('mousemove', handleMove);
+        canvas.addEventListener('touchmove', handleMove, { passive: false }); // Use passive: false for preventDefault
+        canvas.addEventListener('touchstart', handleMove, { passive: false }); // To capture initial touch
+
+        // Event listeners for buttons
+        startButton.addEventListener('click', initialInteraction); // initialInteraction handles audio start and calls startGame
+        restartButton.addEventListener('click', startGame); // In-game restart button
+        overlayRestartButton.addEventListener('click', resetGameUI); // NOW CALLS resetGameUI to return to menu
+
+        pauseButton.addEventListener('click', togglePause); // Pause button
+        resumeButton.addEventListener('click', togglePause); // Resume button on pause overlay
+
+        // Keyboard event for pausing
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
+                if (!gameOver && gameStarted) { // Only allow pausing if game is active and not over
+                    togglePause();
+                }
+            }
+        });
+
+
+        easyBtn.addEventListener('click', () => selectDifficulty(easyBtn, 'easy'));
+        mediumBtn.addEventListener('click', () => selectDifficulty(mediumBtn, 'medium'));
+        hardBtn.addEventListener('click', () => selectDifficulty(hardBtn, 'hard'));
+
+    </script>
+</body>
+</html>
